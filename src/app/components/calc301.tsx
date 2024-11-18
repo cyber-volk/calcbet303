@@ -1499,7 +1499,7 @@ interface SpeechRecognitionEvent {
 
 // Add these constants at the top of the file with other constants
 const MAX_FORMS_PER_SITE = 3; // Changed from 5 to 3
-const MAX_SITES = 20;
+const MAX_SITES = 5; // Changed from 20 to 5
 
 // Main Calculator Component
 export default function NewCalculator() {
