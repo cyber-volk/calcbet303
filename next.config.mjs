@@ -6,7 +6,6 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  output: 'standalone',
   distDir: '.next',
   images: {
     unoptimized: true
