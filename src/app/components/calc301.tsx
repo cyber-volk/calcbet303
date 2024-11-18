@@ -12,7 +12,7 @@ import { jsPDF } from 'jspdf' // Add this import
 // Add at the top of the file, after imports
 declare global {
   interface Window {
-    webkitSpeechRecognition: any;
+    webkitSpeechRecognition: typeof SpeechRecognition;
   }
 }
 
@@ -228,17 +228,15 @@ interface ShareData {
 }
 
 // Add Navigator interface extension
-interface Navigator {
-  share?: (data: ShareData) => Promise<void>
-  canShare?: (data: ShareData) => boolean
-}
+type WebShareNavigator = Navigator & {
+  share?: (data: ShareData) => Promise<void>;
+  canShare?: (data: ShareData) => boolean;
+};
 
 function FormPreview(props: FormPreviewProps): JSX.Element {
   // Add state declarations at the top of the component
   const [isProcessing, setIsProcessing] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
-  const [previewForm, setPreviewForm] = useState<Form | null>(null);
-  const [previewIndex, setPreviewIndex] = useState<number>(0);
   const { form: formData } = props; // Destructure form from props and rename to formData
 
   // Add missing state declarations
@@ -1013,28 +1011,7 @@ function HistorySlider(props: HistorySliderProps) {
 
   // Update handleDeleteSite function to use props
   const handleDeleteSite = (siteIndex: number) => {
-    if (siteIndex === 0) {
-      alert("Cannot delete the default site");
-      return;
-    }
-
-    const newSites = [...props.sites];
-    newSites.splice(siteIndex, 1); // Remove the site at siteIndex
-    
-    // Update current indices
-    const newSiteIndex = Math.max(0, siteIndex - 1);
-    
-    // Set the new sites array first
-    props.setSites(newSites);
-    
-    // Then update indices and load form
-    props.setCurrentSiteIndex(newSiteIndex);
-    props.setCurrentFormIndex(0); // Always reset to first form
-    
-    // Load the first form of the new current site
-    if (newSites[newSiteIndex] && newSites[newSiteIndex].forms[0]) {
-      props.onLoadForm(newSites[newSiteIndex].forms[0]);
-    }
+    props.onDeleteSite(siteIndex);
   };
 
   const handleFormClick = (form: Form, index: number) => {
@@ -1585,11 +1562,9 @@ export default function NewCalculator() {
       return;
     }
 
-    // FIXED: Load form data only when site or form index changes
     if (sites[currentSiteIndex]) {
       const currentForm = sites[currentSiteIndex].forms[currentFormIndex];
       if (currentForm) {
-        // FIXED: Added default values for all fields to prevent undefined states
         setMultiplier(currentForm.multiplier || '1.1');
         setFond(currentForm.fond || '');
         setSoldeALinstant(currentForm.soldeALinstant || '');
@@ -1602,17 +1577,15 @@ export default function NewCalculator() {
         setResult(currentForm.result || '');
       }
     }
-  }, [mounted, currentSiteIndex, currentFormIndex]); // FIXED: Reduced dependencies to prevent unnecessary rerenders
+  }, [mounted, currentSiteIndex, currentFormIndex, sites]);
 
   // FIXED: Added debounced save effect to prevent rapid state updates
   useEffect(() => {
     if (!mounted) return;
 
-    // FIXED: Added 500ms debounce to prevent performance issues
     const saveTimeout = setTimeout(() => {
       try {
         const updatedSites = [...sites];
-        // FIXED: Ensure all form data is properly saved
         const currentForm = {
           ...updatedSites[currentSiteIndex].forms[currentFormIndex],
           id: updatedSites[currentSiteIndex].forms[currentFormIndex].id || crypto.randomUUID(),
@@ -1650,7 +1623,11 @@ export default function NewCalculator() {
     creditPayeeRows,
     depenseRows,
     retraitRows,
-    result
+    result,
+    currentFormIndex,
+    currentSiteIndex,
+    setSites,
+    sites
   ]);
 
   // FIXED: Updated loadForm function with better error handling
@@ -1983,16 +1960,8 @@ export default function NewCalculator() {
 
   // Add handleDeleteSite function
   const handleDeleteSite = (siteIndex: number) => {
-    if (siteIndex === 0) {
-      alert("Cannot delete the default site")
-      return
-    }
-    const newSites = sites.filter((_, index: number) => index !== siteIndex)
-    setSites(newSites)
-    if (currentSiteIndex >= siteIndex) {
-      setCurrentSiteIndex(Math.max(0, currentSiteIndex - 1))
-    }
-  }
+    props.onDeleteSite(siteIndex);
+  };
 
   // Add handlePreviousForm function
   const handlePreviousForm = () => {
